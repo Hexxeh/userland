@@ -580,6 +580,47 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig c
    CLIENT_PROCESS_STATE_T *process;
    EGLSurface result;
 
+   int32_t success = 0;
+   uint32_t screen_width;
+	uint32_t screen_height;
+
+   static EGL_DISPMANX_WINDOW_T nativewindow;
+
+   DISPMANX_ELEMENT_HANDLE_T dispman_element;
+   DISPMANX_DISPLAY_HANDLE_T dispman_display;
+   DISPMANX_UPDATE_HANDLE_T dispman_update;
+   VC_RECT_T dst_rect;
+   VC_RECT_T src_rect;
+
+   bcm_host_init();
+ 
+   success = graphics_get_display_size(0 /* LCD */, &screen_width, &screen_height);
+   vcos_assert( success >= 0 );
+
+   dst_rect.x = 0;
+   dst_rect.y = 0;
+   dst_rect.width = screen_width;
+   dst_rect.height = screen_height;
+      
+   src_rect.x = 0;
+   src_rect.y = 0;
+   src_rect.width = screen_width << 16;
+   src_rect.height = screen_height << 16;        
+
+   dispman_display = vc_dispmanx_display_open( 0 /* LCD */);
+   dispman_update = vc_dispmanx_update_start( 0 );
+         
+   dispman_element = vc_dispmanx_element_add ( dispman_update, dispman_display,
+                                              0/*layer*/, &dst_rect, 0/*src*/,
+                                              &src_rect, DISPMANX_PROTECTION_NONE, 0 /*alpha*/, 0/*clamp*/, 0/*transform*/);
+      
+   nativewindow.element = dispman_element;
+   nativewindow.width = screen_width;
+   nativewindow.height = screen_height;
+   vc_dispmanx_update_submit_sync( dispman_update );
+
+   win=(EGLNativeWindowType)&nativewindow;
+
    vcos_log_trace("eglCreateWindowSurface for window %p", win);
 
    if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))

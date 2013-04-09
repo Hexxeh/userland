@@ -54,8 +54,6 @@ static void dump_ancestors(Window w);
 //
 
 #ifdef WANT_X
-static Display *hacky_display = 0;
-
 static XErrorHandler old_handler = (XErrorHandler) 0 ;
 static int application_error_handler(Display *display, XErrorEvent *theEvent)
 {
@@ -462,10 +460,10 @@ EGLDisplay khrn_platform_set_display_id(EGLNativeDisplayType display_id)
 #else
 EGLDisplay khrn_platform_set_display_id(EGLNativeDisplayType display_id)
 {
-   if (display_id == EGL_DEFAULT_DISPLAY)
-      return (EGLDisplay)1;
-   else
-      return EGL_NO_DISPLAY;
+  //if (display_id == EGL_DEFAULT_DISPLAY)
+  return (EGLDisplay)1;
+  // else
+  //return EGL_NO_DISPLAY;
 }
 #endif
 
