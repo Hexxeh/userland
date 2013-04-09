@@ -1,18 +1,5 @@
 # setup environment for cross compile to arm-linux
 
-if (DEFINED CMAKE_TOOLCHAIN_FILE)
-else()
-   message(FATAL_ERROR 
-	"  *********************************************************\n"
-   	"  *   CMAKE_TOOLCHAIN_FILE not defined                    *\n"
-	"  *   Please DELETE the build directory and re-run with:  *\n"
-	"  *   -DCMAKE_TOOLCHAIN_FILE=toolchain_file.cmake         *\n"
-	"  *                                                       *\n"
-   	"  *   Toolchain files are in makefiles/cmake/toolchains.  *\n"
-	"  *********************************************************"
-       )
-endif()
-
 # pull in headers for android
 if(ANDROID)
     #
