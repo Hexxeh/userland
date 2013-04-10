@@ -4,6 +4,7 @@ add_subdirectory(libs/bcm_host)
 add_subdirectory(apps/gencmd)
 add_subdirectory(apps/tvservice)
 add_subdirectory(apps/raspicam)
+add_subdirectory(apps/hello_pi)
 
 if(ALL_APPS)
  add_subdirectory(apps/vcdbg)
