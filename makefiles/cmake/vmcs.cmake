@@ -56,8 +56,8 @@ configure_file (
 #        PERMISSIONS OWNER_WRITE WORLD_READ)
 
 # provide hello_pi demos
-install(DIRECTORY host_applications/linux/apps/hello_pi
-        DESTINATION ${VMCS_INSTALL_PREFIX}/src)
+#install(DIRECTORY host_applications/linux/apps/hello_pi
+#        DESTINATION ${VMCS_INSTALL_PREFIX}/src)
 
 # provide header files
 #install(DIRECTORY host_applications/linux/libs/bcm_host/include
