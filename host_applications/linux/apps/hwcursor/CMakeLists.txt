@@ -8,7 +8,7 @@ set(HELLO_PI_LIBS bcm_host vcos vchiq_arm)
 include_directories(/lib/usr/)
 add_definitions(-ggdb)
 add_executable(${EXEC} ${SRCS})
-target_link_libraries(${EXEC} ${HELLO_PI_LIBS} X11)X
+target_link_libraries(${EXEC} ${HELLO_PI_LIBS} X11)
 
 install(TARGETS ${EXEC}
         RUNTIME DESTINATION bin)

@@ -48,8 +48,8 @@ int main(void)
   int                         aligned_height = ALIGN_UP(height, 16);
   int                         ret;
 
-  //  Display                    *x_display;
-  //  Window                      root, child;
+  Display                    *x_display;
+  Window                      root, child;
   int                         cursor_X, cursor_Y, winX, winY;
   unsigned int                mask;
 
