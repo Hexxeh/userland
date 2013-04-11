@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-//#include <X11/Xlib.h>
+#include <X11/Xlib.h>
 
 #include "bcm_host.h"
 
