@@ -5451,26 +5451,43 @@ GL_APICALL void GL_APIENTRY glGenerateMipmap(GLenum target)
    }
 }
 
+static bool is_precision_type(GLenum type)
+{
+   return type == GL_LOW_FLOAT ||
+          type == GL_MEDIUM_FLOAT ||
+          type == GL_HIGH_FLOAT ||
+          type == GL_LOW_INT ||
+          type == GL_MEDIUM_INT ||
+          type == GL_HIGH_INT;
+}
+
+static bool is_float_type(GLenum type)
+{
+   return type == GL_LOW_FLOAT ||
+          type == GL_MEDIUM_FLOAT ||
+          type == GL_HIGH_FLOAT;
+}
+
 /* OES_shader_source + OES_shader_binary */
 GL_APICALL void GL_APIENTRY glGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype, GLint *range, GLint *precision)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_20(thread)) {
-      GLint result[3];
 
-      RPC_CALL3_OUT_CTRL(glGetShaderPrecisionFormat_impl_20,
-                         thread,
-                         GLGETSHADERPRECISIONFORMAT_ID_20,
-                         RPC_ENUM(shadertype),
-                         RPC_ENUM(precisiontype),
-                         result);
+     if (is_shader_type(shadertype) && is_precision_type(precisiontype)) {
 
-      if (range) {
-         range[0] = result[0];
-         range[1] = result[1];
-      }
-      if (precision)
-         *precision = result[2];
+       if (range) {
+	 range[0] = -126;
+	 range[1] = 127;
+       }
+
+       if (precision) {
+	 if (is_float_type(precisiontype))
+	   *precision = -23;
+	 else
+	   *precision = 0;
+       }
+     }
    }
 }
 
