@@ -5468,6 +5468,12 @@ static bool is_float_type(GLenum type)
           type == GL_HIGH_FLOAT;
 }
 
+static bool is_shader_type(GLenum type)
+{  
+   return type == GL_VERTEX_SHADER ||
+     type == GL_FRAGMENT_SHADER;
+}
+
 /* OES_shader_source + OES_shader_binary */
 GL_APICALL void GL_APIENTRY glGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype, GLint *range, GLint *precision)
 {
