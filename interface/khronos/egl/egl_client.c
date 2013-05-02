@@ -574,6 +574,9 @@ EGLAPI const char EGLAPIENTRY * eglQueryString(EGLDisplay dpy, EGLint name)
    -
 */
 
+void bcm_host_init(void);
+int32_t graphics_get_display_size( const uint16_t display_number, uint32_t *width, uint32_t *height);
+
 EGLAPI EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list)
 {
    CLIENT_THREAD_STATE_T *thread;
