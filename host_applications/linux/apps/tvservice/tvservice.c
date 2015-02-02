@@ -71,6 +71,7 @@ enum
 {
    OPT_PREFERRED = 'p',
    OPT_EXPLICIT  = 'e',
+   OPT_NTSC      = 't',
    OPT_OFF       = 'o',
    OPT_SDTVON    = 'c',
    OPT_MODES     = 'm',
@@ -92,6 +93,7 @@ static struct option long_opts[] =
    // -------------------  ------------------   ----     ---------------
    { "preferred",          no_argument,         NULL,    OPT_PREFERRED },
    { "explicit",           required_argument,   NULL,    OPT_EXPLICIT },
+   { "ntsc",               no_argument,         NULL,    OPT_NTSC },
    { "off",                no_argument,         NULL,    OPT_OFF },
    { "sdtvon",             required_argument,   NULL,    OPT_SDTVON },
    { "modes",              required_argument,   NULL,    OPT_MODES },
@@ -113,19 +115,20 @@ static VCOS_EVENT_T quit_event;
 static void show_usage( void )
 {
    LOG_STD( "Usage: tvservice [OPTION]..." );
-   LOG_STD( "  -p, --preferred              Power on HDMI with preferred settings" );
-   LOG_STD( "  -e, --explicit=\"GROUP MODE\"  Power on HDMI with explicit GROUP (CEA, DMT, CEA_3D_SBS, CEA_3D_TB)\n"
-            "                               and MODE (see --modes)" );
-   LOG_STD( "  -c, --sdtvon=\"MODE ASPECT\"   Power on SDTV with MODE (PAL or NTSC) and ASPECT (4:3 14:9 or 16:9)" );
-   LOG_STD( "  -o, --off                    Power off the display" );
-   LOG_STD( "  -m, --modes=GROUP            Get supported modes for GROUP (CEA, DMT)" );
-   LOG_STD( "  -M, --monitor                Monitor HDMI events" );
-   LOG_STD( "  -s, --status                 Get HDMI status" );
-   LOG_STD( "  -a, --audio                  Get supported audio information" );
-   LOG_STD( "  -d, --dumpedid <filename>    Dump EDID information to file" );
-   LOG_STD( "  -j, --json                   Use JSON format for --modes output" );
-   LOG_STD( "  -n, --name                   Print the device ID from EDID" );
-   LOG_STD( "  -h, --help                   Print this information" );
+   LOG_STD( "  -p, --preferred                   Power on HDMI with preferred settings" );
+   LOG_STD( "  -e, --explicit=\"GROUP MODE DRIVE\" Power on HDMI with explicit GROUP (CEA, DMT, CEA_3D_SBS, CEA_3D_TB)\n"
+            "                                      MODE (see --modes) and DRIVE (HDMI, DVI)" );
+   LOG_STD( "  -t, --ntsc                        Use NTSC frequency for HDMI mode (e.g. 59.94Hz rather than 60Hz)" );
+   LOG_STD( "  -c, --sdtvon=\"MODE ASPECT\"        Power on SDTV with MODE (PAL or NTSC) and ASPECT (4:3 14:9 or 16:9)" );
+   LOG_STD( "  -o, --off                         Power off the display" );
+   LOG_STD( "  -m, --modes=GROUP                 Get supported modes for GROUP (CEA, DMT)" );
+   LOG_STD( "  -M, --monitor                     Monitor HDMI events" );
+   LOG_STD( "  -s, --status                      Get HDMI status" );
+   LOG_STD( "  -a, --audio                       Get supported audio information" );
+   LOG_STD( "  -d, --dumpedid <filename>         Dump EDID information to file" );
+   LOG_STD( "  -j, --json                        Use JSON format for --modes output" );
+   LOG_STD( "  -n, --name                        Print the device ID from EDID" );
+   LOG_STD( "  -h, --help                        Print this information" );
 }
 
 static void create_optstring( char *optstring )
@@ -292,8 +295,9 @@ static int get_modes( HDMI_RES_GROUP_T group, int json_output)
       }
       else
       {
+         int preferred = supported_modes[i].group == preferred_group && supported_modes[i].code == preferred_mode;
          LOG_STD( "%s mode %u: %ux%u @ %uHz %s, clock:%uMHz %s%s %s",
-                  supported_modes[i].native ? "  (native)" : "          ",
+                  preferred ? "  (prefer)" : supported_modes[i].native ? "  (native)" : "          ",
                   supported_modes[i].code, supported_modes[i].width,
                   supported_modes[i].height, supported_modes[i].frame_rate,
                   aspect_ratio_str(supported_modes[i].aspect_ratio),
@@ -316,28 +320,28 @@ static const char *status_mode( TV_DISPLAY_STATE_T *tvstate ) {
    size_t offset = 0;
    if(tvstate->state & ( VC_HDMI_HDMI | VC_HDMI_DVI )) {
       //HDMI or DVI on
-      if(tvstate->state & VC_HDMI_HDMI) {
-         tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, "HDMI");
-         if(!tmp) {
-            //We should still have space at this point
-            switch(tvstate->display.hdmi.group) {
-            case HDMI_RES_GROUP_CEA:
-               tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " CEA (%d)", tvstate->display.hdmi.mode); break;
-            case HDMI_RES_GROUP_DMT:
-               tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " DMT (%d)", tvstate->display.hdmi.mode); break;
-            default: break;
-            }
+      tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, (tvstate->state & VC_HDMI_HDMI) ? "HDMI" : "DVI");
+      if(!tmp) {
+         //We should still have space at this point
+         switch(tvstate->display.hdmi.group) {
+         case HDMI_RES_GROUP_CEA:
+            tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " CEA (%d)", tvstate->display.hdmi.mode); break;
+         case HDMI_RES_GROUP_DMT:
+            tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " DMT (%d)", tvstate->display.hdmi.mode); break;
+         default: break;
          }
-         if(!tmp && tvstate->display.hdmi.format_3d) {
-            switch(tvstate->display.hdmi.format_3d) {
-            case HDMI_3D_FORMAT_SBS_HALF:
-               tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " 3D SbS"); break;
-            case HDMI_3D_FORMAT_TB_HALF:
-               tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " 3D T&B"); break;
-            default: break;
-            }
+      }
+      if(!tmp && tvstate->display.hdmi.format_3d) {
+         switch(tvstate->display.hdmi.format_3d) {
+         case HDMI_3D_FORMAT_SBS_HALF:
+            tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " 3D SbS"); break;
+         case HDMI_3D_FORMAT_TB_HALF:
+            tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " 3D T&B"); break;
+         default: break;
          }
-         if(!tmp) {
+      }
+      if(!tmp) {
+         if (tvstate->state & VC_HDMI_HDMI)
             //Only HDMI mode can signal pixel encoding in AVI infoframe
             switch(tvstate->display.hdmi.pixel_encoding) {
             case HDMI_PIXEL_ENCODING_RGB_LIMITED:
@@ -354,10 +358,9 @@ static const char *status_mode( TV_DISPLAY_STATE_T *tvstate ) {
                tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, " YCbCr422 full"); break;
             default: break;
             }
-         }
-      } else {
-         //DVI will always be RGB, and CEA mode will have limited range, DMT mode full range
-         tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset, "DVI %s",
+         else
+            //DVI will always be RGB, and CEA mode will have limited range, DMT mode full range
+            tmp = status_sprintf(mode_str, MAX_STATUS_STR_LENGTH, &offset,
                         (tvstate->display.hdmi.group == HDMI_RES_GROUP_CEA)?
                         " RGB lim" : " RGB full");
       }
@@ -427,11 +430,16 @@ static int get_status( void )
    if( vc_tv_get_display_state( &tvstate ) == 0) {
       //The width/height parameters are in the same position in the union
       //for HDMI and SDTV
+      HDMI_PROPERTY_PARAM_T property;
+      property.property = HDMI_PROPERTY_PIXEL_CLOCK_TYPE;
+      vc_tv_hdmi_get_property(&property);
+      float frame_rate = property.param1 == HDMI_PIXEL_CLOCK_TYPE_NTSC ? tvstate.display.hdmi.frame_rate * (1000.0f/1001.0f) : tvstate.display.hdmi.frame_rate;
+
       if(tvstate.display.hdmi.width && tvstate.display.hdmi.height) {
-         LOG_STD( "state 0x%x [%s], %ux%u @ %uHz, %s", tvstate.state,
+         LOG_STD( "state 0x%x [%s], %ux%u @ %.2fHz, %s", tvstate.state,
                   status_mode(&tvstate),
                   tvstate.display.hdmi.width, tvstate.display.hdmi.height,
-                  tvstate.display.hdmi.frame_rate,
+                  frame_rate,
                   tvstate.display.hdmi.scan_mode ? "interlaced" : "progressive" );
       } else {
          LOG_STD( "state 0x%x [%s]", tvstate.state, status_mode(&tvstate));
@@ -538,9 +546,9 @@ static void tvservice_callback( void *callback_data,
          LOG_INFO( "HDMI cable is unplugged" );
          break;
       }
-      case VC_HDMI_STANDBY:
+      case VC_HDMI_ATTACHED:
       {
-         LOG_INFO( "HDMI in standby mode" );
+         LOG_INFO( "HDMI is attached" );
          break;
       }
       case VC_HDMI_DVI:
@@ -576,6 +584,7 @@ static void tvservice_callback( void *callback_data,
       default:
       {
          // Ignore all other reasons
+         LOG_INFO( "Callback with reason %d", reason );
          break;
       }
    }
@@ -615,14 +624,14 @@ static int power_on_preferred( void )
 }
 
 static int power_on_explicit( HDMI_RES_GROUP_T group,
-                              uint32_t mode )
+                              uint32_t mode, uint32_t drive )
 {
    int ret;
 
    LOG_STD( "Powering on HDMI with explicit settings (%s mode %u)",
             group == HDMI_RES_GROUP_CEA ? "CEA" : group == HDMI_RES_GROUP_DMT ? "DMT" : "CUSTOM", mode );
 
-   ret = vc_tv_hdmi_power_on_explicit( HDMI_MODE_HDMI, group, mode );
+   ret = vc_tv_hdmi_power_on_explicit( drive, group, mode );
    if ( ret != 0 )
    {
       LOG_ERR( "Failed to power on HDMI with explicit settings (%s mode %u)",
@@ -639,7 +648,7 @@ static int set_property(HDMI_PROPERTY_T prop, uint32_t param1, uint32_t param2)
    property.property = prop;
    property.param1 = param1;
    property.param2 = param2;
-   LOG_STD( "Setting property %d with params %d, %d", prop, param1, param2);
+   //LOG_DBG( "Setting property %d with params %d, %d", prop, param1, param2);
    ret = vc_tv_hdmi_set_property(&property);
    if(ret != 0)
    {
@@ -692,6 +701,7 @@ int main( int argc, char **argv )
    int  opt;
    int  opt_preferred = 0;
    int  opt_explicit = 0;
+   int  opt_ntsc = 0;
    int  opt_sdtvon = 0;
    int  opt_off = 0;
    int  opt_modes = 0;
@@ -709,6 +719,7 @@ int main( int argc, char **argv )
    VCHI_CONNECTION_T *vchi_connection;
    HDMI_RES_GROUP_T power_on_explicit_group = HDMI_RES_GROUP_INVALID;
    uint32_t         power_on_explicit_mode;
+   uint32_t         power_on_explicit_drive = HDMI_MODE_HDMI;
    HDMI_RES_GROUP_T get_modes_group = HDMI_RES_GROUP_INVALID;
    SDTV_MODE_T sdtvon_mode;
    SDTV_ASPECT_T sdtvon_aspect;
@@ -737,11 +748,11 @@ int main( int argc, char **argv )
          }
          case OPT_EXPLICIT:
          {
-            char group_str[32];
+            char group_str[32], drive_str[32];
 
             /* coverity[secure_coding] String length specified, so can't overflow */
-            if ( sscanf( optarg, "%31s %u", group_str,
-                         &power_on_explicit_mode ) != 2 )
+            int s = sscanf( optarg, "%31s %u %31s", group_str, &power_on_explicit_mode, drive_str );
+            if ( s != 2 && s != 3 )
             {
                LOG_ERR( "Invalid arguments '%s'", optarg );
                goto err_out;
@@ -772,7 +783,22 @@ int main( int argc, char **argv )
                LOG_ERR( "Invalid group '%s'", group_str );
                goto err_out;
             }
-
+            if (s==3)
+            {
+               if (vcos_strcasecmp( "HDMI", drive_str ) == 0 )
+               {
+                  power_on_explicit_drive = HDMI_MODE_HDMI;
+               }
+               else if (vcos_strcasecmp( "DVI", drive_str ) == 0 )
+               {
+                  power_on_explicit_drive = HDMI_MODE_DVI;
+               }
+               else
+               {
+                  LOG_ERR( "Invalid drive '%s'", drive_str );
+                  goto err_out;
+               }
+            }
             // Then check if mode is a sane number
             if ( power_on_explicit_mode > MAX_MODE_ID )
             {
@@ -781,6 +807,11 @@ int main( int argc, char **argv )
             }
 
             opt_explicit = 1;
+            break;
+         }
+         case OPT_NTSC:
+         {
+            opt_ntsc = 1;
             break;
          }
          case OPT_SDTVON:
@@ -987,9 +1018,12 @@ int main( int argc, char **argv )
       {
          goto err_stop_service;
       }
-
+      if (set_property( HDMI_PROPERTY_PIXEL_CLOCK_TYPE, opt_ntsc ? HDMI_PIXEL_CLOCK_TYPE_NTSC : HDMI_PIXEL_CLOCK_TYPE_PAL, 0) != 0)
+      {
+         goto err_stop_service;
+      }
       if ( power_on_explicit( power_on_explicit_group,
-                              power_on_explicit_mode ) != 0 )
+                              power_on_explicit_mode, power_on_explicit_drive ) != 0 )
       {
          goto err_stop_service;
       }

@@ -11,7 +11,9 @@
 
 #include "bcm_host.h"
 
+#ifndef ALIGN_UP
 #define ALIGN_UP(x,y)  ((x + (y)-1) & ~((y)-1))
+#endif
 
 static void FillRect( VC_IMAGE_TYPE_T type, void *image, int pitch, int aligned_height, int x, int y, int w, int h, int val )
 {

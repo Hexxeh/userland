@@ -246,6 +246,8 @@ extern "C" {
    case VC_IMAGE_TF_PAL4:     \
    case VC_IMAGE_TF_ETC1:     \
    case VC_IMAGE_TF_Y8:       \
+   case VC_IMAGE_TF_U8:       \
+   case VC_IMAGE_TF_V8:       \
    case VC_IMAGE_TF_A8:       \
    case VC_IMAGE_TF_SHORT:    \
    case VC_IMAGE_TF_1BPP
@@ -297,7 +299,8 @@ extern "C" {
    } VC_IMAGE_EXTRA_RGBA_T;
 
    typedef struct vc_image_extra_pal_s {
-      short *palette, *dummy;
+      short *palette;
+      int palette32 : 1;
    } VC_IMAGE_EXTRA_PAL_T;
 
 // These fields are subject to change / being moved around
@@ -603,6 +606,9 @@ unsigned int cube_map           : 1;
 
    /* Return the space required (in bytes) for an image of this type's palette. */
    int vc_image_palette_size (VC_IMAGE_T *image);
+
+   /* Return true if palette is 32bpp */
+   int vc_image_palette_is_32bit(VC_IMAGE_T *image);
 
    /* Return 1 if image is high-definition, else return 0. */
    int vc_image_is_high_definition(const VC_IMAGE_T *image);
@@ -922,6 +928,9 @@ void *vc_image_pixel_addr_gl(VC_IMAGE_BUF_T *image, int x, int y, int miplevel);
 
    /* Unpack bytes as above, but also copy them to another memory block in the process. */
    void vc_image_copy_unpack(VC_IMAGE_BUF_T *img, int dest_x_off, int dest_y_off, unsigned char *src, int w, int h);
+
+   /* swap red/blue */
+   void vc_image_swap_red_blue(VC_IMAGE_BUF_T *img);
 
 #if defined(va_start) /* can't publish this without including <stdarg.h> */
    VC_IMAGE_BUF_T *vc_image_vparmalloc_unwrapped(VC_IMAGE_TYPE_T type, char const *description, long width, long height, va_list proplist);
